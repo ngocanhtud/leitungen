@@ -374,7 +374,7 @@
 
   <script>
     // ==== CONFIGURE THIS ====
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4YsgFN6_BYrQIJ-V_zM6OFqat2uCMjLfbPhu6-WpMqUe73IYRh193RzON23C4OIA/exec";
+   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4YsgFN6_BYrQIJ-V_zM6OFqat2uCMjLfbPhu6-WpMqUe73IYRh193RzON23C4OIA/exec";
     const ACCESS_TOKEN = "VEW_2026"; // 
     // =========================
 
@@ -408,7 +408,7 @@
     }
 
     function initMap() {
-      const map = L.map('map').setView([51.05, 13.9], 12);
+       const map = L.map('map').setView([51.05, 13.9], 12);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -677,10 +677,15 @@
             lineLayer.clearLayers();
 
             L.geoJSON(geojson, {
-              style: {
-                color: "#5c6b67",
-                weight: 3,
-                opacity: 0.7
+              style: (feature) => {
+                const p = feature.properties || {};
+                const isMissing = (p.START_Stat && p.START_Stat !== "Complete") ||
+                  (p.END_Status && p.END_Status !== "Complete");
+                return {
+                  color: isMissing ? "#c0483a" : "#2f6f5e",
+                  weight: 4,
+                  opacity: 0.8
+                };
               },
               onEachFeature: (feature, layer) => {
                 const p = feature.properties || {};
