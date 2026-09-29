@@ -409,7 +409,7 @@
 
     function initMap() {
       const map = L.map('map').setView([51.05, 13.9], 12);
-       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
         attribution: 'Tiles &copy; Esri'
       }).addTo(map);
@@ -669,36 +669,43 @@
       });
 
       function loadLines() {
-        // Static file, sitting right next to index.html on GitHub — no API call,
-        // no token, loads instantly. Re-run build_leitungen.py and re-upload
-        // leitungen.json whenever your Haltung data changes.
-        fetch('leitungen.json')
+        // Real GeoJSON exported directly from QGIS/ArcGIS Pro — sitting next to
+        // index.html on GitHub, no API call, no token, loads instantly.
+        fetch('leitungen.geojson')
           .then(r => r.json())
-          .then(data => {
+          .then(geojson => {
             lineLayer.clearLayers();
-            (data || []).forEach(item => {
-              const coords = item.coords;
-              if (!Array.isArray(coords) || coords.length < 2) return;
 
-              const polyline = L.polyline(coords, {
-                color: "#2f6f5e",
-                weight: 4,
-                opacity: 0.8
-              });
-              const popupHtml = `
-            <div class="popup-box">
-              <h3>${item.name || item.id}</h3>
-              <div class="row">Line: ${item.line || '–'}</div>
-              <div class="row">Auslauf: ${item.auslauf_id || '–'}</div>
-              <div class="row">Länge: ${item.length_m != null ? item.length_m + ' m' : '–'}</div>
-            </div>
-          `;
-              polyline.bindPopup(popupHtml);
-              polyline.addTo(lineLayer);
-            });
+            L.geoJSON(geojson, {
+              style: (feature) => {
+                const p = feature.properties || {};
+                const isMissing = (p.START_Stat && p.START_Stat !== "Complete") ||
+                  (p.END_Status && p.END_Status !== "Complete");
+                return {
+                  color: isMissing ? "#c0483a" : "#2f6f5e",
+                  weight: 4,
+                  opacity: 0.8
+                };
+              },
+              onEachFeature: (feature, layer) => {
+                const p = feature.properties || {};
+                const startId = p.START_Sc_1 || p.START_uniq || '–';
+                const endId = p.END_Scha_1 || p.END_uniqID || '–';
+                const length = p.Shape_Leng ? Math.round(p.Shape_Leng * 100) / 100 : null;
+                layer.bindPopup(`
+              <div class="popup-box">
+                <h3>${startId} → ${endId}</h3>
+                <div class="row">Line: ${p.START_Line || p.END_Line || '–'}</div>
+                <div class="row">Straße: ${p.START_Stra || p.END_Straß || '–'}</div>
+                <div class="row">Länge: ${length != null ? length + ' m' : '–'}</div>
+              </div>
+            `);
+              }
+            }).addTo(lineLayer);
+
             linesLoaded = true;
           })
-          .catch(() => showToast("Konnte leitungen.json nicht laden — liegt die Datei neben index.html?"));
+          .catch(() => showToast("Konnte leitungen.geojson nicht laden — liegt die Datei neben index.html?"));
       }
 
       document.getElementById('toggleLines').addEventListener('change', (e) => {
